@@ -1,33 +1,33 @@
 #include <Arduino.h>
 #include <Wire.h>
+#include <AX12A.h>
 
-const uint8_t EFF_PIN[] = {1, 2, 3, 4};
 
-void receiveEvent(int size) {
-  Wire.read(); // le premier est toujours n'importe quoi
+constexpr uint8_t EFF_PIN[] = {1, 2, 3, 4};
 
-  char message[100];
-  int state;
-  int id;
+void receiveEvent(const int size) {
+    Wire.read(); // le premier est toujours n'importe quoi
 
-  Wire.readBytes(message, size);
-  message[size] = '\0';
+    char message[100];
+    int state;
+    int id;
 
-  if (sscanf(message, "%d %d", &state, &id) == 2) {
-    if (id >= 0 && id < 4) {
-      digitalWrite(EFF_PIN[id], state ? HIGH : LOW);
+    Wire.readBytes(message, size);
+    message[size] = '\0';
+
+    if (sscanf(message, "%d %d", &state, &id) == 2) {
+        if (id >= 0 && id < 4) { digitalWrite(EFF_PIN[id], state ? HIGH : LOW); }
     }
-  }
 }
 
 void setup() {
-  Wire.begin(0x20);
-  Wire.onReceive(receiveEvent);
+    Wire.begin(0x20);
+    Wire.onReceive(receiveEvent);
 
-  for (int i = 0; i < 4; i++) {
-    pinMode(EFF_PIN[i], OUTPUT);
-    digitalWrite(EFF_PIN[i], LOW);
-  }
+    for (const unsigned char i : EFF_PIN) {
+        pinMode(i, OUTPUT);
+        digitalWrite(i, LOW);
+    }
 }
 
 void loop() {
