@@ -4,6 +4,7 @@
 #include <XL320.h>
 
 
+#define I2C_ADDRESS          0x20
 #define BAUD_RATE1           115200ul
 #define RX1_PIN              8
 #define TX1_PIN              9
@@ -28,50 +29,7 @@
 
 XL320 xl320;
 
-constexpr short SWITCH_PINS[4] = {2, 3, 4, 5};
-
-// void receiveEvent(const int size) {
-//     Wire.read(); // le premier est toujours n'importe quoi
-//
-//     char message[100];
-//     int state;
-//     int id;
-//
-//     Wire.readBytes(message, size);
-//     message[size] = '\0';
-//
-//     if (sscanf(message, "%d %d", &state, &id) == 2) {
-//         if (id >= 0 && id < 4) {
-//             digitalWrite(EFF_PIN[id], state ? HIGH : LOW);
-//         }
-//     }
-// }
-
-void setup() {
-    // Init Serial USB
-    Serial.begin(BAUD_RATE1);
-
-    // Init Wire I2C
-    Wire.begin(0x20);
-    // Wire.onReceive(receiveEvent);
-
-    // Init PINs
-    for (const unsigned char i : SWITCH_PINS) {
-        pinMode(i, INPUT);
-    }
-
-    // Init Servo XL320 et AX-12A
-    Serial1.begin(BAUD_RATE1, SERIAL_8N1, RX1_PIN, TX1_PIN);
-    xl320.begin(Serial1);
-    for (const int id : {
-             XL320_BANNER_ID, XL320_MAGNET_ID, XL320_RIGHT_ID, XL320_LEFT_ID, XL320_PUMP_ID
-         }) {
-        xl320.setJointSpeed(id, 500);
-    }
-    Serial2.begin(BAUD_RATE2, SERIAL_8N1, RX2_PIN, TX2_PIN);
-    ax12a.begin(BAUD_RATE2, DIRECTION_PIN, &Serial2);
-    ax12a.setEndless(AX12A_ID, OFF);
-}
+constexpr short SWITCH_PINS[2] = {2, 3};
 
 void setMagnetExtOn() {
     xl320.moveJoint(XL320_RIGHT_ID, XL320_RIGHT_OFFSET);
@@ -83,12 +41,12 @@ void setMagnetExtOff() {
     xl320.moveJoint(XL320_LEFT_ID, XL320_LEFT_OFFSET + 614);
 }
 
-void setBannerOpen() { // TODO: passer le servo de la bannière en endless ?
-    xl320.moveJoint(XL320_BANNER_ID, XL320_BANNER_OFFSET + 200);
+void setBannerOpen() {
+    xl320.moveJoint(XL320_BANNER_ID, XL320_BANNER_OFFSET);
 }
 
 void setBannerClose() {
-    xl320.moveJoint(XL320_BANNER_ID, XL320_BANNER_OFFSET);
+    xl320.moveJoint(XL320_BANNER_ID, XL320_BANNER_OFFSET + 310);
 }
 
 void setMagnetIntOn() {
@@ -145,6 +103,93 @@ void putDownPlank() {
     setPumpOff();
     delay(10);
     setPumpUp();
+}
+
+void takeCans() {
+    setMagnetIntOn();
+    setMagnetExtOn();
+}
+
+void putDownCans() {
+    setMagnetIntOff();
+    setMagnetExtOff();
+}
+
+void takeEverything() {
+    setPliersDown();
+    takePlank();
+    takeCans();
+}
+
+void putDownEverything() {
+    setPliersDown();
+    putDownCans();
+    putDownPlank();
+}
+
+void performAction(const int state, const int id) {
+    switch (id) {
+    case 0:
+        if (state == 0) {
+            putDownEverything();
+        }
+        if (state == 1) {
+            takeEverything();
+        }
+    case 1:
+        if (state == 0) {
+            setBannerClose();
+        }
+        if (state == 1) {
+            setBannerOpen();
+        }
+    default: break;
+    }
+}
+
+void receiveEvent(const int size) {
+    Wire.read(); // le premier est toujours n'importe quoi
+
+    char message[100];
+    int state; // 0 = désactivé, 1 = activé
+    int id; // 0 = pince, 1 = bannière
+
+    Wire.readBytes(message, size);
+    message[size] = '\0';
+
+    if (sscanf(message, "%d %d", &state, &id) == 2) {
+        if (0 <= state < 2 && 0 <= id < 2) {
+            performAction(state, id);
+        }
+    }
+}
+
+void setup() {
+    // Init Serial USB
+    Serial.begin(BAUD_RATE1);
+
+    // Init Wire I2C
+    Wire.begin(I2C_ADDRESS);
+    Serial.println("I2C Init");
+    Wire.onReceive(receiveEvent);
+
+    // Init PINs
+    for (const unsigned char i : SWITCH_PINS) {
+        pinMode(i, INPUT);
+    }
+
+    // Init Servo XL320 et AX-12A
+    Serial1.begin(BAUD_RATE1, SERIAL_8N1, RX1_PIN, TX1_PIN);
+    xl320.begin(Serial1);
+    for (const int id : {
+             XL320_BANNER_ID, XL320_MAGNET_ID, XL320_RIGHT_ID, XL320_LEFT_ID, XL320_PUMP_ID
+         }) {
+        xl320.setJointSpeed(id, 500);
+    }
+    Serial2.begin(BAUD_RATE2, SERIAL_8N1, RX2_PIN, TX2_PIN);
+    ax12a.begin(BAUD_RATE2, DIRECTION_PIN, &Serial2);
+    ax12a.setEndless(AX12A_ID, OFF);
+    setBannerOpen();
 }
 
 void loop() {
