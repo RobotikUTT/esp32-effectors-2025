@@ -8,7 +8,7 @@
 #define BAUD_RATE1           115200ul
 #define RX1_PIN              9
 #define TX1_PIN              8
-#define XL320_BANNER_ID      4
+#define XL320_BANNER_ID      5
 #define XL320_BANNER_OFFSET  0
 #define XL320_MAGNET_ID      6
 #define XL320_MAGNET_OFFSET  25
@@ -51,7 +51,7 @@ void setBannerOpen() {
 }
 
 void setBannerClose() {
-    xl320.moveJoint(XL320_BANNER_ID, XL320_BANNER_OFFSET + 307);
+    xl320.moveJoint(XL320_BANNER_ID, XL320_BANNER_OFFSET + 230);
     delay(10);
 }
 
@@ -206,7 +206,12 @@ void setup() {
     ax12a.begin(BAUD_RATE2, DIRECTION_PIN, &Serial2);
     ax12a.setEndless(AX12A_ID, OFF);
     setPumpUp();
+    setBannerClose();
+    Serial.println("Effectors initialized");
 }
 
 void loop() {
+    delay(10000);
+    setBannerOpen();
+    Serial.println("Banner opened");
 }
