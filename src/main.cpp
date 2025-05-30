@@ -130,14 +130,14 @@ void putDownCans() {
 void takeEverything() {
     // setPliersDown();
     takeCans();
-    delay(200);
-    takePlank();
+    //delay(200);
+    //takePlank();
 }
 
 void putDownEverything() {
     // setPliersDown();
     putDownCans();
-    putDownPlank();
+    //putDownPlank();
 }
 
 void performAction(const int state, const int id) {
