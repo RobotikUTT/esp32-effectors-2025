@@ -4,7 +4,7 @@
 #include <XL320.h>
 
 
-#define I2C_ADDRESS          0x20
+#define I2C_SLAVE_ADDRESS          0x20
 #define BAUD_RATE1           115200ul
 #define RX1_PIN              9
 #define TX1_PIN              8
@@ -141,6 +141,12 @@ void putDownEverything() {
 }
 
 void performAction(const int state, const int id) {
+    /*
+     * ID 0 : S0 : putDownEverything
+     * ID 0 : S1 : TakeEverything
+     * ID 1 : S0 : SetBannerClose
+     * ID 1 : S1 : SetBannerOpen
+     */
     switch (id) {
     case 0:
         if (state == 0) {
@@ -182,10 +188,12 @@ void setup() {
     Serial.begin(BAUD_RATE1);
 
     // Init Wire I2C
-    /*
-    Wire.begin(I2C_ADDRESS);
-    Serial.println("I2C Init");
+    // Initialize the I2C slave
+    Wire.begin(I2C_SLAVE_ADDRESS);
+    Serial.println("ESP32 I2C Slave initialized.");
     Wire.onReceive(receiveEvent);
+    delay(1000);
+    /*
 
     // Init PINs
     for (const unsigned char i : SWITCH_PINS) {
@@ -211,7 +219,7 @@ void setup() {
 }
 
 void loop() {
-    delay(10000);
-    setBannerOpen();
-    Serial.println("Banner opened");
+    delay(1);
+    //setBannerOpen();
+    //Serial.println("Banner opened");
 }
